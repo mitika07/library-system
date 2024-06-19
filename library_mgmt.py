@@ -62,6 +62,15 @@ class UserInterface:
         print(f"Displaying all available books: {all_books}")
         return all_books
 
+    def search_books(self):
+        """
+        Search a book
+        """
+        search_input = str(input("Search by Book Title or Author: "))
+        searched_books = self.library.get_searched_books(search_input=search_input)
+        print("Books found:")
+        print(json.dumps(searched_books, indent=4))
+
 
 class Library:
     """
@@ -85,6 +94,18 @@ class Library:
         """
         self.available_books.update(new_books)
         self.save_to_file()
+
+    def get_searched_books(self, search_input):
+        """Search a book from all books"""
+        all_books = self.get_books()
+        searched_books = []
+        # print(all_books)
+        for book_data in all_books.values():
+            # print(book_data)
+            for _, value in book_data.items():
+                if search_input in value:
+                    searched_books.append(book_data)
+        return searched_books
 
     def get_books(self, available=True, borrowed=True):
         """
@@ -166,5 +187,6 @@ if __name__ == "__main__":
     user = UserInterface()
     user.add_a_new_book()
     user.display_all_books()
+    user.search_books()
     # user.library.borrow_book("11")
     # user.library.return_book("12")
