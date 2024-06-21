@@ -187,6 +187,18 @@ class Library:
             print(f"Something went wrong while loading json from file: {e}")
             raise
 
+    def remove_book(self, book_id):
+        """
+        Deletes the book from library permenantly
+        """
+        if book_id in self.borrowed_books:
+            self.borrowed_books.pop(book_id)
+        elif book_id in self.available_books:
+            self.available_books.pop(book_id)
+        else:
+            raise ValueError("The book you are trying to remove doesn't exist.")
+        self.save_to_file()
+
 
 class Books(Resource):
     def get(self):
@@ -220,10 +232,39 @@ class Books(Resource):
         return {"message": "Books added successfully", "books": book_data}, 201
 
 
+class BorrowBook(Resource):
+
+    def post(self):
+
+        json_data = request.get_json()
+
+        book_id = json_data["book_id"]
+        print(book_id)
+        library.borrow_book(book_id)
+
+        return {"message": "Books borrowed successfully", "books": book_id}, 201
+
+
+class ReturnBook(Resource):
+
+    def post(self):
+
+        json_data = request.get_json()
+
+        book_id = json_data["book_id"]
+        library.return_book(book_id)
+
+        return {"message": "Books returned successfully", "books": book_id}, 201
+
+
 class Book(Resource):
     def get(self, book_id):
         # return {"test": f"test {book_id}"}
         return library.get_book_details(book_id)
+
+    def delete(self, book_id):
+        library.remove_book(book_id)
+        return {"message": "Book deleted succesfully", "book": book_id}, 200
 
 
 class Authors(Resource):
@@ -246,6 +287,8 @@ if __name__ == "__main__":
 
     api.add_resource(Books, "/books")
     api.add_resource(Book, "/books/<book_id>")
+    api.add_resource(BorrowBook, "/borrow")
+    api.add_resource(ReturnBook, "/return")
 
     if __name__ == "__main__":
         app.run(debug=True)
