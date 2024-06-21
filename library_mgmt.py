@@ -1,10 +1,11 @@
 #  Add books to Library
 
 import json
-
+from flask import Flask, jsonify, request
+from flask_restful import Resource, Api
 
 required_info = ["title", "author", "book_id"]
-
+library = None
 
 # class Book:
 
@@ -120,6 +121,10 @@ class Library:
             books_view.update(self.borrowed_books)
         return books_view
 
+    def get_book_details(self, book_id):
+        """ """
+        return self.get_books().get(book_id)
+
     def borrow_book(self, book_id: int):
         """
         Borrow an available book
@@ -183,10 +188,64 @@ class Library:
             raise
 
 
+class Books(Resource):
+    def get(self):
+        title = request.args.get("title", "")
+        author = request.args.get("author", "")
+        borrowed_param = request.args.get("borrowed", "false").lower() in ("true", "1")
+        available_param = request.args.get("available", "false").lower() in (
+            "true",
+            "1",
+        )
+        borrowed = borrowed_param or (not available_param)
+        available = available_param or (not borrowed_param)
+        if title:
+            return library.get_searched_books(search_input=title)
+        if author:
+            return library.get_searched_books(search_input=author)
+        return library.get_books(available=available, borrowed=borrowed)
+
+    def post(self):
+
+        if not request.is_json:
+            return {"error": "Request must be JSON"}, 400
+
+        json_data = request.get_json(force=True)
+
+        if not isinstance(json_data, dict):
+            return {"error": "Invalid data format"}, 400
+        book_data = {}
+        book_data[json_data["book_id"]] = json_data
+        library.add_books(book_data)
+        return {"message": "Books added successfully", "books": book_data}, 201
+
+
+class Book(Resource):
+    def get(self, book_id):
+        # return {"test": f"test {book_id}"}
+        return library.get_book_details(book_id)
+
+
+class Authors(Resource):
+    def get(self):
+        return library.get_books()
+
+
 if __name__ == "__main__":
-    user = UserInterface()
-    user.add_a_new_book()
-    user.display_all_books()
-    user.search_books()
+    # user = UserInterface()
+    # user.add_a_new_book()
+    # user.display_all_books()
+    # user.search_books()
     # user.library.borrow_book("11")
     # user.library.return_book("12")
+
+    app = Flask(__name__)
+    api = Api(app)
+
+    library = Library()
+
+    api.add_resource(Books, "/books")
+    api.add_resource(Book, "/books/<book_id>")
+
+    if __name__ == "__main__":
+        app.run(debug=True)
